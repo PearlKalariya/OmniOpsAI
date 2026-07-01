@@ -12,3 +12,11 @@ class DocumentOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SearchHit(BaseModel):
+    chunk_id: str
+    score: float
+    document_id: str
+    chunk_index: int
+    content: str

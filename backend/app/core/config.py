@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
     upload_dir: str = "storage/uploads"
+    elasticsearch_url: str = "http://localhost:9200"
+    es_chunk_index: str = "document_chunks"
+    cors_origins: list[str] = ["http://localhost:3000"]
 
     class Config:
         env_file = ".env"

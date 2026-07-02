@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.chunk import DocumentChunk
 from app.models.document import Document
-from app.services import search
+from app.services import embeddings, search, vectorstore
 from app.services.chunking import chunk_text
 from app.services.extraction import extract_text
 
@@ -57,12 +57,16 @@ def process_document(db: Session, document: Document) -> int:
 
     try:
         search.bulk_index_chunks(actions)
+        vectors = embeddings.embed_passages([a["content"] for a in actions])
+        vectorstore.upsert_chunks(actions, vectors)
     except Exception:
-        # Roll back any partial ES writes so PG stays the single source of truth.
-        try:
-            search.delete_document_chunks(document.id)
-        except Exception:
-            pass
+        # Roll back partial writes in both stores so PG stays the single
+        # source of truth (rows survive and can be re-indexed later).
+        for cleanup in (search.delete_document_chunks, vectorstore.delete_document_chunks):
+            try:
+                cleanup(document.id)
+            except Exception:
+                pass
         document.status = "index_failed"
         db.commit()
         raise

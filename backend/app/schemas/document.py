@@ -20,3 +20,4 @@ class SearchHit(BaseModel):
     document_id: str
     chunk_index: int
     content: str
+    sources: list[str] = []  # which retrievers found it (hybrid mode only)

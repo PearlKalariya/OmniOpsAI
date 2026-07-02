@@ -10,7 +10,7 @@ from app.db.session import get_db
 from app.models.document import Document
 from app.models.user import User
 from app.schemas.document import DocumentOut, SearchHit
-from app.services import search
+from app.services import embeddings, hybrid, search, vectorstore
 from app.services.ingestion import process_document
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -84,7 +84,15 @@ def list_documents(db: Session = Depends(get_db), current_user: User = Depends(g
 def search_documents(
     q: str,
     limit: int = 5,
+    mode: str = "hybrid",
     current_user: User = Depends(get_current_user),
 ):
     limit = max(1, min(limit, MAX_SEARCH_RESULTS))
-    return search.search_chunks(owner_id=current_user.id, query=q, size=limit)
+    if mode == "bm25":
+        return search.search_chunks(owner_id=current_user.id, query=q, size=limit)
+    if mode == "vector":
+        query_vector = embeddings.embed_query(q)
+        return vectorstore.search_chunks(owner_id=current_user.id, query_vector=query_vector, size=limit)
+    if mode == "hybrid":
+        return hybrid.hybrid_search(owner_id=current_user.id, query=q, size=limit)
+    raise HTTPException(status_code=422, detail="mode must be one of: hybrid, bm25, vector")

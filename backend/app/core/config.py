@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     elasticsearch_url: str = "http://localhost:9200"
     es_chunk_index: str = "document_chunks"
     cors_origins: list[str] = ["http://localhost:3000"]
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_collection: str = "document_chunks"
+    embedding_model_name: str = "BAAI/bge-m3"
 
     class Config:
         env_file = ".env"

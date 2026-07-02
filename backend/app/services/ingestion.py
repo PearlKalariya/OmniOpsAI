@@ -18,8 +18,12 @@ def process_document(db: Session, document: Document) -> int:
 
     Returns the number of chunks produced. Updates document.status.
     """
-    text = extract_text(document.storage_path, document.content_type)
+    text, meta = extract_text(document.storage_path, document.content_type)
     chunks = chunk_text(text)
+
+    document.page_count = meta.get("page_count")
+    document.char_count = meta.get("char_count")
+    document.chunk_count = len(chunks)
 
     if not chunks:
         document.status = "no_text"

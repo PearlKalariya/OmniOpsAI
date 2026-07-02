@@ -1,25 +1,35 @@
-"""Text extraction from uploaded files.
+"""Text + metadata extraction from uploaded files.
 
-Handles text-based PDFs, CSVs, and plain text. Scanned-image OCR (TrOCR)
-is deferred — see ROADMAP Milestone 1.
+Handles text-based PDFs, CSVs, plain text, and printed-text images (via
+TrOCR, see ocr.py for its line-level limitation). Audio/video need STT
+pipelines (Milestone 2 Audio Agent).
 """
 
 from pypdf import PdfReader
 
+IMAGE_CONTENT_TYPES = {"image/png", "image/jpeg"}
 
-def extract_text(path: str, content_type: str) -> str:
+
+def extract_text(path: str, content_type: str) -> tuple[str, dict]:
+    """Return (text, metadata). Metadata keys: page_count, char_count."""
     if content_type == "application/pdf":
-        return _extract_pdf(path)
+        text, pages = _extract_pdf(path)
+        return text, {"page_count": pages, "char_count": len(text)}
     if content_type in ("text/csv", "text/plain"):
-        return _extract_plain(path)
-    # Images/audio/video need OCR/STT pipelines (not yet implemented).
-    return ""
+        text = _extract_plain(path)
+        return text, {"page_count": None, "char_count": len(text)}
+    if content_type in IMAGE_CONTENT_TYPES:
+        from app.services import ocr
+
+        text = ocr.image_to_text(path)
+        return text, {"page_count": None, "char_count": len(text)}
+    return "", {"page_count": None, "char_count": 0}
 
 
-def _extract_pdf(path: str) -> str:
+def _extract_pdf(path: str) -> tuple[str, int]:
     reader = PdfReader(path)
     pages = [page.extract_text() or "" for page in reader.pages]
-    return "\n".join(pages).strip()
+    return "\n".join(pages).strip(), len(pages)
 
 
 def _extract_plain(path: str) -> str:

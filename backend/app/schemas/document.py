@@ -1,17 +1,20 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class DocumentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     filename: str
     content_type: str
     status: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    size_bytes: int | None = None
+    page_count: int | None = None
+    char_count: int | None = None
+    chunk_count: int | None = None
 
 
 class SearchHit(BaseModel):

@@ -1,23 +1,24 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    # max 72: bcrypt silently truncates beyond 72 bytes, so longer passwords
+    # would give users a false sense of extra entropy.
+    password: str = Field(min_length=8, max_length=72)
 
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=72)
 
 
 class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     email: EmailStr
     is_active: bool
-
-    class Config:
-        from_attributes = True
 
 
 class Token(BaseModel):

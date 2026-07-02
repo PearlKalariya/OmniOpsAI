@@ -4,20 +4,20 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 
 ---
 
-## Milestone 1: Foundation (Weeks 1–2)
+## Milestone 1: Foundation (Weeks 1–2) — ✅ COMPLETE
 
-- [ ] Scaffold FastAPI backend project structure
-- [ ] Set up PostgreSQL + connection layer
-- [ ] Implement JWT/OAuth authentication service
-- [ ] API Gateway routing skeleton
-- [ ] Document ingestion endpoint (upload PDF/CSV)
-- [ ] OCR pipeline (Microsoft TrOCR)
-- [ ] Chunking + metadata extraction
-- [ ] Embedding generation (BAAI/bge-m3)
-- [ ] Qdrant vector storage integration
-- [ ] BM25 index (Elasticsearch)
-- [ ] Hybrid retrieval (vector + BM25)
-- [ ] Basic LLM response generation via LiteLLM
+- [x] Scaffold FastAPI backend project structure
+- [x] Set up PostgreSQL + connection layer
+- [x] Implement JWT authentication service (OAuth social login moved to Milestone 4 — needs frontend + provider registration)
+- [x] API Gateway routing skeleton (FastAPI app as single entrypoint w/ routers)
+- [x] Document ingestion endpoint (upload PDF/CSV/images)
+- [x] OCR pipeline (Microsoft TrOCR, line-level printed text; full-page detection comes with M2 Vision Agent)
+- [x] Chunking + metadata extraction (size/pages/chars/chunks)
+- [x] Embedding generation (BAAI/bge-m3)
+- [x] Qdrant vector storage integration
+- [x] BM25 index (Elasticsearch)
+- [x] Hybrid retrieval (vector + BM25, RRF fusion)
+- [x] Basic LLM response generation via LiteLLM (+ hardening: rate limiting, password policy, magic-byte checks, 0 known CVEs)
 
 ## Milestone 2: Multi-Agent System (Weeks 3–5)
 

@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 
@@ -12,6 +13,8 @@ from app.models.user import User
 from app.schemas.document import AskRequest, AskResponse, DocumentOut, SearchHit
 from app.services import embeddings, hybrid, llm, search, vectorstore
 from app.services.ingestion import process_document
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -44,6 +47,11 @@ async def upload_document(
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large (max 25 MB)")
 
+    # Content-Type is client-supplied and spoofable; verify magic bytes for
+    # formats we parse so a mislabeled payload can't reach the wrong parser.
+    if file.content_type == "application/pdf" and not content.startswith(b"%PDF-"):
+        raise HTTPException(status_code=400, detail="File does not look like a valid PDF")
+
     os.makedirs(settings.upload_dir, exist_ok=True)
     ext = os.path.splitext(file.filename or "")[1]
     stored_name = f"{uuid.uuid4()}{ext}"
@@ -58,6 +66,7 @@ async def upload_document(
         storage_path=storage_path,
         content_type=file.content_type,
         status="uploaded",
+        size_bytes=len(content),
     )
     db.add(document)
     db.commit()
@@ -117,6 +126,11 @@ def ask_documents(
     try:
         result = llm.generate_answer(question=payload.question, chunks=hits)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}") from exc
+        # Full provider error (may contain internal details) goes to logs only.
+        logger.exception("LLM request failed")
+        raise HTTPException(
+            status_code=502,
+            detail=f"LLM request failed ({type(exc).__name__}); see server logs",
+        ) from exc
 
     return AskResponse(answer=result["answer"], model=result["model"], sources=hits)

@@ -21,3 +21,14 @@ class SearchHit(BaseModel):
     chunk_index: int
     content: str
     sources: list[str] = []  # which retrievers found it (hybrid mode only)
+
+
+class AskRequest(BaseModel):
+    question: str
+    limit: int = 5
+
+
+class AskResponse(BaseModel):
+    answer: str
+    model: str
+    sources: list[SearchHit]

@@ -1,7 +1,12 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    # extra="ignore": .env may hold provider keys (e.g. a parked ANTHROPIC_API_KEY)
+    # that are not Settings fields — LiteLLM and libraries read them from the
+    # process env directly.
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     database_url: str = "postgresql://postgres:postgres@localhost:5432/omniops"
     jwt_secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
@@ -13,9 +18,8 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "document_chunks"
     embedding_model_name: str = "BAAI/bge-m3"
-
-    class Config:
-        env_file = ".env"
+    llm_model: str = "anthropic/claude-opus-4-8"
+    llm_api_key: str = ""
 
 
 settings = Settings()

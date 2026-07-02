@@ -9,8 +9,8 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.document import Document
 from app.models.user import User
-from app.schemas.document import DocumentOut, SearchHit
-from app.services import embeddings, hybrid, search, vectorstore
+from app.schemas.document import AskRequest, AskResponse, DocumentOut, SearchHit
+from app.services import embeddings, hybrid, llm, search, vectorstore
 from app.services.ingestion import process_document
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -96,3 +96,27 @@ def search_documents(
     if mode == "hybrid":
         return hybrid.hybrid_search(owner_id=current_user.id, query=q, size=limit)
     raise HTTPException(status_code=422, detail="mode must be one of: hybrid, bm25, vector")
+
+
+@router.post("/ask", response_model=AskResponse)
+def ask_documents(
+    payload: AskRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if not llm.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="LLM not configured: set LLM_API_KEY in backend/.env",
+        )
+
+    limit = max(1, min(payload.limit, MAX_SEARCH_RESULTS))
+    hits = hybrid.hybrid_search(owner_id=current_user.id, query=payload.question, size=limit)
+    if not hits:
+        raise HTTPException(status_code=404, detail="No relevant documents found for this question")
+
+    try:
+        result = llm.generate_answer(question=payload.question, chunks=hits)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}") from exc
+
+    return AskResponse(answer=result["answer"], model=result["model"], sources=hits)

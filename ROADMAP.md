@@ -21,13 +21,13 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 
 ## Milestone 2: Multi-Agent System (Weeks 3–5)
 
-- [ ] LangGraph orchestrator setup
-- [ ] Planner Agent (tool/model/data-source routing)
+- [x] LangGraph orchestrator setup (planner→retrieval→answer→verifier graph, /api/agent/ask w/ node trace)
+- [x] Planner Agent (LLM picks retrieval mode+limit, heuristic fallback)
 - [ ] Vision Agent (Florence-2, BLIP-2, SAM, YOLO)
 - [ ] Audio Agent (Whisper, Pyannote, diarization)
 - [ ] Document Agent (OCR + chunking + retrieval, formalized)
 - [ ] Retrieval Agent (cross-encoder re-ranking w/ bge-reranker-v2)
-- [ ] Verification Agent (fact-checking, citation validation, hallucination detection)
+- [x] Verification Agent v1 (groundedness verdict in graph; citation validation + deeper checks pending)
 - [ ] Report Agent (exec summary, tech report, ticket/email/Slack drafts)
 - [ ] Redis + Celery async task queue wiring
 - [ ] Enterprise connectors: GitHub, Jira, Slack

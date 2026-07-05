@@ -1,9 +1,10 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.agents.graph import agent_graph
 from app.api.deps import get_current_user
+from app.core.ratelimit import limiter
 from app.models.user import User
 from app.schemas.agent import AgentAskRequest, AgentAskResponse
 from app.services import llm
@@ -14,7 +15,8 @@ router = APIRouter(prefix="/api/agent", tags=["agent"])
 
 
 @router.post("/ask", response_model=AgentAskResponse)
-def agent_ask(payload: AgentAskRequest, current_user: User = Depends(get_current_user)):
+@limiter.limit("10/minute")  # one agent run = 3 LLM calls (planner/answer/verifier)
+def agent_ask(request: Request, payload: AgentAskRequest, current_user: User = Depends(get_current_user)):
     if not llm.is_configured():
         raise HTTPException(status_code=503, detail="LLM not configured: set LLM_API_KEY in backend/.env")
 

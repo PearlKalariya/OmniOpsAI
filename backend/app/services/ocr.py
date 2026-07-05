@@ -15,6 +15,9 @@ _processor = None
 _model = None
 
 MODEL_NAME = "microsoft/trocr-small-printed"
+# Pin the exact HF revision so a compromised/moved upstream repo can't swap
+# weights under us (supply-chain hardening, bandit B615).
+MODEL_REVISION = "04e994ab854b0089d4929f48c2b4dbe2ce78a340"
 
 
 def _load():
@@ -22,8 +25,8 @@ def _load():
     if _model is None:
         from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
-        _processor = TrOCRProcessor.from_pretrained(MODEL_NAME)
-        _model = VisionEncoderDecoderModel.from_pretrained(MODEL_NAME)
+        _processor = TrOCRProcessor.from_pretrained(MODEL_NAME, revision=MODEL_REVISION)
+        _model = VisionEncoderDecoderModel.from_pretrained(MODEL_NAME, revision=MODEL_REVISION)
     return _processor, _model
 
 

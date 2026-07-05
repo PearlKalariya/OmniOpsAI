@@ -26,7 +26,7 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 - [ ] Vision Agent (Florence-2, BLIP-2, SAM, YOLO)
 - [ ] Audio Agent (Whisper, Pyannote, diarization)
 - [ ] Document Agent (OCR + chunking + retrieval, formalized)
-- [ ] Retrieval Agent (cross-encoder re-ranking w/ bge-reranker-v2)
+- [x] Retrieval Agent (cross-encoder re-ranking w/ bge-reranker-v2-m3; agent overfetches 3x then reranks, search endpoint has rerank=true flag)
 - [x] Verification Agent v1 (groundedness verdict in graph; citation validation + deeper checks pending)
 - [ ] Report Agent (exec summary, tech report, ticket/email/Slack drafts)
 - [ ] Redis + Celery async task queue wiring
@@ -51,6 +51,7 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 ## Milestone 4: UI, Deployment, Polish (Weeks 9–12)
 
 - [ ] Next.js + Tailwind + shadcn/ui frontend scaffold
+- [ ] OAuth social login (moved from M1 — needs frontend + provider registration)
 - [ ] Dashboard page
 - [ ] Chat page
 - [ ] Agent Execution Graph page
@@ -64,6 +65,11 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 - [ ] GPU worker pool setup for model inference
 - [ ] Documentation pass
 - [ ] Public deployment
+
+> **Free deployment options** (researched 2026-07): full stack needs ~6GB RAM (bge-m3 + reranker + ES) — no PaaS free tier fits.
+> 1. **Oracle Cloud Always Free** ARM VM (4 cores/24GB) — whole docker compose as-is, zero code changes.
+> 2. **Managed free tiers** (Render + Neon PG + Qdrant Cloud 1GB + Groq) — needs swaps: ES→Postgres FTS, local embeddings→API embeddings.
+> 3. **No hosting** — README + demo GIF + `docker compose up` instructions.
 
 ---
 

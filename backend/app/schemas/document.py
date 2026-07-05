@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DocumentOut(BaseModel):
@@ -24,10 +24,11 @@ class SearchHit(BaseModel):
     chunk_index: int
     content: str
     sources: list[str] = []  # which retrievers found it (hybrid mode only)
+    rerank_score: float | None = None  # cross-encoder score when reranked
 
 
 class AskRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1, max_length=2000)
     limit: int = 5
 
 

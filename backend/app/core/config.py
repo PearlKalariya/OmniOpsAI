@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "document_chunks"
     embedding_model_name: str = "BAAI/bge-m3"
+    reranker_model_name: str = "BAAI/bge-reranker-v2-m3"
     llm_model: str = "anthropic/claude-opus-4-8"
     llm_api_key: str = ""
 

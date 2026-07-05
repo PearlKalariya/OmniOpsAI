@@ -4,6 +4,8 @@ Runs synchronously for now. Moving this to a Celery task is a
 ROADMAP Milestone 2 item.
 """
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from app.models.chunk import DocumentChunk
@@ -11,6 +13,8 @@ from app.models.document import Document
 from app.services import embeddings, search, vectorstore
 from app.services.chunking import chunk_text
 from app.services.extraction import extract_text
+
+logger = logging.getLogger(__name__)
 
 
 def process_document(db: Session, document: Document) -> int:
@@ -69,8 +73,8 @@ def process_document(db: Session, document: Document) -> int:
         for cleanup in (search.delete_document_chunks, vectorstore.delete_document_chunks):
             try:
                 cleanup(document.id)
-            except Exception:
-                pass
+            except Exception as cleanup_exc:
+                logger.warning("Cleanup failed for document %s: %s", document.id, cleanup_exc)
         document.status = "index_failed"
         db.commit()
         raise

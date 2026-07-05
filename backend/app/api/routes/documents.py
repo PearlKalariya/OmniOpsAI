@@ -2,16 +2,17 @@ import logging
 import os
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.config import settings
+from app.core.ratelimit import limiter
 from app.db.session import get_db
 from app.models.document import Document
 from app.models.user import User
 from app.schemas.document import AskRequest, AskResponse, DocumentOut, SearchHit
-from app.services import embeddings, hybrid, llm, search, vectorstore
+from app.services import embeddings, hybrid, llm, reranker, search, vectorstore
 from app.services.ingestion import process_document
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,9 @@ MAX_SEARCH_RESULTS = 50
 
 
 @router.post("/upload", response_model=DocumentOut, status_code=201)
+@limiter.limit("20/minute")  # ingestion runs embeddings/OCR — expensive
 async def upload_document(
+    request: Request,
     file: UploadFile,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -94,21 +97,29 @@ def search_documents(
     q: str,
     limit: int = 5,
     mode: str = "hybrid",
+    rerank: bool = False,
     current_user: User = Depends(get_current_user),
 ):
     limit = max(1, min(limit, MAX_SEARCH_RESULTS))
+    fetch = limit * 3 if rerank else limit
     if mode == "bm25":
-        return search.search_chunks(owner_id=current_user.id, query=q, size=limit)
-    if mode == "vector":
+        hits = search.search_chunks(owner_id=current_user.id, query=q, size=fetch)
+    elif mode == "vector":
         query_vector = embeddings.embed_query(q)
-        return vectorstore.search_chunks(owner_id=current_user.id, query_vector=query_vector, size=limit)
-    if mode == "hybrid":
-        return hybrid.hybrid_search(owner_id=current_user.id, query=q, size=limit)
-    raise HTTPException(status_code=422, detail="mode must be one of: hybrid, bm25, vector")
+        hits = vectorstore.search_chunks(owner_id=current_user.id, query_vector=query_vector, size=fetch)
+    elif mode == "hybrid":
+        hits = hybrid.hybrid_search(owner_id=current_user.id, query=q, size=fetch)
+    else:
+        raise HTTPException(status_code=422, detail="mode must be one of: hybrid, bm25, vector")
+    if rerank:
+        hits = reranker.rerank(q, hits, top_k=limit)
+    return hits
 
 
 @router.post("/ask", response_model=AskResponse)
+@limiter.limit("20/minute")  # each call is a paid/quota'd LLM request
 def ask_documents(
+    request: Request,
     payload: AskRequest,
     current_user: User = Depends(get_current_user),
 ):

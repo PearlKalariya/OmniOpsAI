@@ -9,10 +9,10 @@ task never leaves a document stuck in "queued".
 import logging
 
 import app.models  # noqa: F401 — full model registry for FK resolution
+from app.agents import document_agent
 from app.core.celery_app import celery_app
 from app.db.session import SessionLocal
 from app.models.document import Document
-from app.services.ingestion import process_document
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def ingest_document(document_id: str) -> None:
             logger.error("ingest_document: document %s not found", document_id)
             return
         try:
-            process_document(db, document)
+            document_agent.process(db, document)
         except Exception:
             logger.exception("Ingestion failed for document %s", document_id)
             db.rollback()

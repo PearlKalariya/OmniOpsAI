@@ -11,9 +11,9 @@ from app.core.ratelimit import limiter
 from app.db.session import get_db
 from app.models.document import Document
 from app.models.user import User
+from app.agents import document_agent
 from app.schemas.document import AskRequest, AskResponse, DocumentOut, SearchHit
 from app.services import embeddings, hybrid, llm, reranker, search, vectorstore
-from app.services.ingestion import process_document
 from app.tasks.ingestion import ingest_document
 
 logger = logging.getLogger(__name__)
@@ -25,8 +25,11 @@ ALLOWED_CONTENT_TYPES = {
     "image/png",
     "image/jpeg",
     "text/csv",
+    "text/plain",
     "audio/mpeg",
     "audio/wav",
+    "audio/x-wav",
+    "audio/mp4",
     "video/mp4",
 }
 
@@ -94,7 +97,7 @@ def _ingest_inline(db: Session, document: Document) -> None:
     # Upload already succeeded, so a processing failure marks the document
     # rather than failing the request.
     try:
-        process_document(db, document)
+        document_agent.process(db, document)
     except Exception:
         logger.exception("Inline ingestion failed for document %s", document.id)
         db.rollback()

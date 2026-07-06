@@ -1,13 +1,14 @@
 """Text + metadata extraction from uploaded files.
 
-Handles text-based PDFs, CSVs, plain text, and printed-text images (via
-TrOCR, see ocr.py for its line-level limitation). Audio/video need STT
-pipelines (Milestone 2 Audio Agent).
+Handles text-based PDFs, CSVs, plain text, printed-text images (TrOCR,
+see ocr.py for its line-level limitation), and audio (faster-whisper,
+see stt.py). Video needs a demux step first (future Vision/Audio work).
 """
 
 from pypdf import PdfReader
 
 IMAGE_CONTENT_TYPES = {"image/png", "image/jpeg"}
+AUDIO_CONTENT_TYPES = {"audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp4"}
 
 
 def extract_text(path: str, content_type: str) -> tuple[str, dict]:
@@ -22,6 +23,11 @@ def extract_text(path: str, content_type: str) -> tuple[str, dict]:
         from app.services import ocr
 
         text = ocr.image_to_text(path)
+        return text, {"page_count": None, "char_count": len(text)}
+    if content_type in AUDIO_CONTENT_TYPES:
+        from app.services import stt
+
+        text, _meta = stt.transcribe(path)
         return text, {"page_count": None, "char_count": len(text)}
     return "", {"page_count": None, "char_count": 0}
 

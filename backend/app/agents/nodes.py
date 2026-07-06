@@ -8,6 +8,7 @@ product, so its error propagates).
 """
 
 import logging
+import re
 import time
 
 from app.agents.state import AgentState
@@ -144,17 +145,48 @@ def report_node(state: AgentState) -> dict:
     return {"report": report, "trace": [{"node": "report", "ms": ms, "format": fmt}]}
 
 
+def validate_citations(answer: str, n_hits: int) -> dict:
+    """Mechanical citation checks — no LLM involved.
+
+    Returns citations_used (sorted unique ints), phantom_citations (cite a
+    passage number that doesn't exist), and uncited (answer carries no
+    citation markers at all).
+    """
+    cited = sorted({int(n) for n in re.findall(r"\[(\d+)\]", answer or "")})
+    phantom = [n for n in cited if n < 1 or n > n_hits]
+    return {
+        "citations_used": cited,
+        "phantom_citations": phantom,
+        "uncited": len(cited) == 0,
+    }
+
+
 def verify_node(state: AgentState) -> dict:
     start = time.monotonic()
     context = "\n\n".join(f"[{i + 1}] {h['content']}" for i, h in enumerate(state["hits"]))
+
+    citations = validate_citations(state.get("answer", ""), len(state["hits"]))
+
     try:
         raw = llm.complete_json(
             VERIFIER_SYSTEM,
             f"Context passages:\n\n{context}\n\nAnswer to check:\n{state['answer']}",
         )
-        verification = {"grounded": bool(raw.get("grounded")), "notes": str(raw.get("notes", ""))[:300]}
+        grounded = bool(raw.get("grounded"))
+        notes = str(raw.get("notes", ""))[:300]
     except Exception as exc:
         logger.warning("Verifier LLM failed: %s", exc)
-        verification = {"grounded": None, "notes": "verification unavailable"}
+        grounded, notes = None, "verification unavailable"
+
+    # Phantom citations override the LLM verdict — an answer citing
+    # passages that don't exist is not trustworthy regardless.
+    if citations["phantom_citations"]:
+        grounded = False
+        notes = f"cites non-existent passages {citations['phantom_citations']}; {notes}"
+
+    verification = {"grounded": grounded, "notes": notes, **citations}
     ms = int((time.monotonic() - start) * 1000)
-    return {"verification": verification, "trace": [{"node": "verifier", "ms": ms, **verification}]}
+    return {
+        "verification": verification,
+        "trace": [{"node": "verifier", "ms": ms, "grounded": grounded, **citations}],
+    }

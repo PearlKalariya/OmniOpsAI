@@ -28,5 +28,9 @@ class AgentState(TypedDict, total=False):
     # verifier output
     verification: dict[str, Any]  # {"grounded": bool, "notes": str}
 
+    # report agent (optional; node runs only when report_format is set)
+    report_format: str  # "summary" | "report" | "ticket" | "slack" | "email"
+    report: str
+
     # accumulated node trace: [{"node": ..., "ms": ..., **extras}]
     trace: Annotated[list[dict], operator.add]

@@ -28,8 +28,8 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 - [ ] Document Agent (OCR + chunking + retrieval, formalized)
 - [x] Retrieval Agent (cross-encoder re-ranking w/ bge-reranker-v2-m3; agent overfetches 3x then reranks, search endpoint has rerank=true flag)
 - [x] Verification Agent v1 (groundedness verdict in graph; citation validation + deeper checks pending)
-- [ ] Report Agent (exec summary, tech report, ticket/email/Slack drafts)
-- [ ] Redis + Celery async task queue wiring
+- [x] Report Agent (graph node after verifier: summary/report/ticket/slack/email via /api/agent/report)
+- [x] Redis + Celery async task queue wiring (upload returns instantly w/ status=queued; worker ingests; GET /documents/{id} polling; inline fallback when broker down; INGEST_SYNC env escape hatch)
 - [ ] Enterprise connectors: GitHub, Jira, Slack
 - [ ] Enterprise connectors: Gmail, Google Drive, Google Calendar
 - [ ] Enterprise connectors: Notion, Confluence, Zendesk

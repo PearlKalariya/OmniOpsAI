@@ -96,6 +96,54 @@ def answer_node(state: AgentState) -> dict:
     }
 
 
+REPORT_STYLES = {
+    "summary": (
+        "an executive summary: 3-5 bullet points, plain business language, "
+        "lead with the single most important fact"
+    ),
+    "report": (
+        "a technical report in markdown with sections: ## Findings, "
+        "## Evidence (quote the passages), ## Recommendations"
+    ),
+    "ticket": (
+        "a Jira-style ticket in markdown with: **Title** (one line), "
+        "**Priority** (High/Medium/Low with one-line justification), "
+        "**Description**, **Acceptance Criteria** (checklist)"
+    ),
+    "slack": (
+        "a short Slack message: 2-4 sentences, conversational, one emoji max, "
+        "ends with the key takeaway"
+    ),
+    "email": (
+        "a professional email draft with Subject: line, greeting, 1-2 short "
+        "paragraphs, and sign-off as 'OmniOps AI'"
+    ),
+}
+
+REPORT_SYSTEM = (
+    "You are the report writer of a document-QA agent. Rewrite the verified "
+    "answer as {style}. Stay faithful to the answer's facts — do not add new "
+    "claims. Keep citation markers like [1] where they support key facts. "
+    "If verification flagged the answer as not grounded, prepend a warning line."
+)
+
+
+def report_node(state: AgentState) -> dict:
+    start = time.monotonic()
+    fmt = state.get("report_format", "summary")
+    style = REPORT_STYLES.get(fmt, REPORT_STYLES["summary"])
+    verification = state.get("verification") or {}
+    user_msg = (
+        f"Question: {state['question']}\n\n"
+        f"Verified answer:\n{state['answer']}\n\n"
+        f"Verification: grounded={verification.get('grounded')}, "
+        f"notes={verification.get('notes', '')}"
+    )
+    report = llm.complete_text(REPORT_SYSTEM.format(style=style), user_msg)
+    ms = int((time.monotonic() - start) * 1000)
+    return {"report": report, "trace": [{"node": "report", "ms": ms, "format": fmt}]}
+
+
 def verify_node(state: AgentState) -> dict:
     start = time.monotonic()
     context = "\n\n".join(f"[{i + 1}] {h['content']}" for i, h in enumerate(state["hits"]))

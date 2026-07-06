@@ -52,6 +52,20 @@ def generate_answer(question: str, chunks: list[dict]) -> dict:
     }
 
 
+def complete_text(system: str, user: str, max_tokens: int = 1024) -> str:
+    """One-shot plain-text completion."""
+    response = litellm.completion(
+        model=settings.llm_model,
+        api_key=settings.llm_api_key,
+        max_tokens=max_tokens,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    )
+    return (response.choices[0].message.content or "").strip()
+
+
 def complete_json(system: str, user: str, max_tokens: int = 512) -> dict:
     """One-shot completion that must return a JSON object.
 

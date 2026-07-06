@@ -14,6 +14,7 @@ from app.models.user import User
 from app.schemas.document import AskRequest, AskResponse, DocumentOut, SearchHit
 from app.services import embeddings, hybrid, llm, reranker, search, vectorstore
 from app.services.ingestion import process_document
+from app.tasks.ingestion import ingest_document
 
 logger = logging.getLogger(__name__)
 
@@ -68,23 +69,37 @@ async def upload_document(
         filename=file.filename or stored_name,
         storage_path=storage_path,
         content_type=file.content_type,
-        status="uploaded",
+        status="queued",
         size_bytes=len(content),
     )
     db.add(document)
     db.commit()
     db.refresh(document)
 
-    # Ingest synchronously. Upload already succeeded, so a processing
-    # failure marks the document rather than failing the request.
+    if settings.ingest_sync:
+        _ingest_inline(db, document)
+    else:
+        try:
+            ingest_document.delay(document.id)
+        except Exception as exc:
+            # Broker unreachable — degrade to inline processing rather than
+            # stranding the document in "queued".
+            logger.warning("Celery enqueue failed (%s); ingesting inline", exc)
+            _ingest_inline(db, document)
+    db.refresh(document)
+    return document
+
+
+def _ingest_inline(db: Session, document: Document) -> None:
+    # Upload already succeeded, so a processing failure marks the document
+    # rather than failing the request.
     try:
         process_document(db, document)
     except Exception:
+        logger.exception("Inline ingestion failed for document %s", document.id)
         db.rollback()
         document.status = "failed"
         db.commit()
-    db.refresh(document)
-    return document
 
 
 @router.get("", response_model=list[DocumentOut])
@@ -145,3 +160,17 @@ def ask_documents(
         ) from exc
 
     return AskResponse(answer=result["answer"], model=result["model"], sources=hits)
+
+
+# Keep this LAST: /{document_id} would otherwise shadow /search and /ask
+# (Starlette matches routes in registration order).
+@router.get("/{document_id}", response_model=DocumentOut)
+def get_document(
+    document_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    document = db.get(Document, document_id)
+    if document is None or document.owner_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return document

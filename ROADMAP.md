@@ -23,7 +23,7 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 
 - [x] LangGraph orchestrator setup (planner→retrieval→answer→verifier graph, /api/agent/ask w/ node trace)
 - [x] Planner Agent (LLM picks retrieval mode+limit, heuristic fallback)
-- [ ] Vision Agent (Florence-2, BLIP-2, SAM, YOLO)
+- [x] Vision Agent v1 (BLIP captioning + TrOCR text combined per image, both indexed; BLIP-2 ~15GB impractical local — Florence-2/SAM/YOLO deferred to backlog)
 - [x] Audio Agent v1 (faster-whisper STT: audio upload → transcript → chunks → searchable/askable; diarization deferred — pyannote models gated behind HF access token)
 - [x] Document Agent (OCR + chunking + metadata + dual indexing formalized as agents/document_agent.py; used by Celery task + inline path)
 - [x] Retrieval Agent (cross-encoder re-ranking w/ bge-reranker-v2-m3; agent overfetches 3x then reranks, search endpoint has rerank=true flag)

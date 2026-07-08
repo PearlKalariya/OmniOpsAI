@@ -30,10 +30,10 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 - [x] Verification Agent (LLM groundedness verdict + mechanical citation validation: used/phantom/uncited; phantom citations override verdict to not-grounded)
 - [x] Report Agent (graph node after verifier: summary/report/ticket/slack/email via /api/agent/report)
 - [x] Redis + Celery async task queue wiring (upload returns instantly w/ status=queued; worker ingests; GET /documents/{id} polling; inline fallback when broker down; INGEST_SYNC env escape hatch)
-- [ ] Enterprise connectors: GitHub, Jira, Slack
-- [ ] Enterprise connectors: Gmail, Google Drive, Google Calendar
-- [ ] Enterprise connectors: Notion, Confluence, Zendesk
-- [ ] Enterprise connectors: News API, Weather API
+- [x] Enterprise connectors: GitHub (repos/issues) + Slack (channels/send, auto-join; Report Agent delivers reports to Slack)
+- [ ] Enterprise connectors: Gmail, Google Drive, Google Calendar (OAuth-heavy — deferred)
+- [ ] Enterprise connectors: Notion, Confluence, Zendesk (deferred)
+- [x] Enterprise connectors: News API, Weather API
 
 ## Milestone 3: Evaluation & Monitoring (Weeks 6–8)
 

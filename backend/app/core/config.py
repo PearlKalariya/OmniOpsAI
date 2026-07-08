@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     whisper_model_size: str = "small"  # tiny|base|small|medium|large-v3
     llm_model: str = "anthropic/claude-opus-4-8"
     llm_api_key: str = ""
+    github_token: str = ""
+    openweather_api_key: str = ""
+    newsapi_key: str = ""
+    slack_bot_token: str = ""
     redis_url: str = "redis://localhost:6379/0"
     # True processes uploads inline (no worker/broker needed) — dev/test escape hatch.
     ingest_sync: bool = False

@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.agents.graph import agent_graph
 from app.api.deps import get_current_user
+from app.connectors import slack
+from app.connectors.base import ConnectorError
 from app.core.ratelimit import limiter
 from app.models.user import User
 from app.schemas.agent import AgentAskRequest, AgentAskResponse, AgentReportRequest
@@ -49,6 +51,17 @@ def agent_ask(request: Request, payload: AgentAskRequest, current_user: User = D
 def agent_report(request: Request, payload: AgentReportRequest, current_user: User = Depends(get_current_user)):
     if not llm.is_configured():
         raise HTTPException(status_code=503, detail="LLM not configured: set LLM_API_KEY in backend/.env")
-    return _run_graph(
+    result = _run_graph(
         {"question": payload.question, "owner_id": current_user.id, "report_format": payload.format}
     )
+
+    if payload.slack_channel and payload.format == "slack" and result.report:
+        if not slack.is_configured():
+            raise HTTPException(status_code=503, detail="Slack connector not configured")
+        try:
+            slack.send_message(payload.slack_channel, result.report)
+            result.delivered_to = payload.slack_channel
+        except ConnectorError as exc:
+            # Report succeeded; delivery didn't. Surface both.
+            raise HTTPException(status_code=502, detail=f"Report generated but Slack delivery failed: {exc}") from exc
+    return result

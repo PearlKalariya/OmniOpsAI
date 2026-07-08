@@ -14,6 +14,9 @@ class AgentAskRequest(BaseModel):
 class AgentReportRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     format: ReportFormat = "summary"
+    # When set (and format == "slack"), the report is also posted to this
+    # Slack channel via the Slack connector.
+    slack_channel: str | None = Field(default=None, max_length=100)
 
 
 class AgentAskResponse(BaseModel):
@@ -25,3 +28,4 @@ class AgentAskResponse(BaseModel):
     trace: list[dict[str, Any]] = []
     report: str | None = None
     report_format: str | None = None
+    delivered_to: str | None = None  # slack channel when delivery happened

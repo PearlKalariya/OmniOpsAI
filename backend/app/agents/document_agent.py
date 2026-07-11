@@ -13,20 +13,9 @@ module. Retrieval stays with the Retrieval Agent (agents/nodes.py).
 from sqlalchemy.orm import Session
 
 from app.models.document import Document
-from app.services.extraction import AUDIO_CONTENT_TYPES, IMAGE_CONTENT_TYPES
 from app.services.ingestion import process_document
-
-SUPPORTED_CONTENT_TYPES = {
-    "application/pdf",
-    "text/csv",
-    "text/plain",
-} | IMAGE_CONTENT_TYPES | AUDIO_CONTENT_TYPES
 
 
 def process(db: Session, document: Document) -> int:
     """Run the full document pipeline; returns chunk count."""
     return process_document(db, document)
-
-
-def supports(content_type: str) -> bool:
-    return content_type in SUPPORTED_CONTENT_TYPES

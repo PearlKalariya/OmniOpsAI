@@ -1,0 +1,9 @@
+Incident and Operations Review — Q4
+
+Checkout outage: The checkout service outage on November 12 lasted 45 minutes. The root cause was an expired database TLS certificate on the load balancer, which broke all encrypted connections to the primary database. Maria is responsible for rotating all certificates, and the rotation must be completed by Friday.
+
+Deployment freeze: Production deployments are frozen from December 20 through January 2 for the holiday change moratorium. Emergency fixes during the freeze require VP approval.
+
+Backup policy: Database backups run weekly on Sundays at 02:00 UTC and are retained for 90 days.
+
+Monitoring: Disk usage alerts fire at 80 percent capacity. The on-call rotation is weekly, handed off every Monday morning.

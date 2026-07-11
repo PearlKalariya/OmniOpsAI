@@ -40,13 +40,13 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 - [ ] Langfuse integration for tracing
 - [ ] OpenTelemetry instrumentation
 - [ ] Prometheus + Grafana metrics/dashboards
-- [ ] Automated eval pipeline (Question → Answer → Judge LLM → Metrics)
-- [ ] RAGAS / DeepEval integration
-- [ ] Track cost, latency, token usage
-- [ ] Track hallucination rate, faithfulness, groundedness
-- [ ] Track retrieval precision, tool success rate
-- [ ] Cost Dashboard (UI)
-- [ ] Evaluation Dashboard (UI)
+- [x] Automated eval pipeline (Question → agent → Judge LLM → Metrics; POST /api/eval/run, persisted runs+results)
+- [x] RAGAS-style metrics (faithfulness, answer_relevance, context_precision — judged directly on LiteLLM model)
+- [x] Track latency per question/run (cost + token usage pending — needs LiteLLM usage capture)
+- [x] Track faithfulness, groundedness (groundedness from verifier, faithfulness from judge)
+- [x] Track retrieval precision (context_precision metric) — tool success rate pending
+- [ ] Cost Dashboard (UI) — M4
+- [ ] Evaluation Dashboard (UI) — M4
 
 ## Milestone 4: UI, Deployment, Polish (Weeks 9–12)
 

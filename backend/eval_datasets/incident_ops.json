@@ -1,0 +1,26 @@
+{
+  "dataset_name": "incident_ops",
+  "note": "Upload eval_datasets/incident_ops_doc.txt as a document first, then POST these items to /api/eval/run.",
+  "items": [
+    {
+      "question": "How long did the checkout outage last?",
+      "expected": "45 minutes"
+    },
+    {
+      "question": "What caused the checkout outage?",
+      "expected": "An expired database TLS certificate on the load balancer."
+    },
+    {
+      "question": "Who is responsible for rotating the certificates?",
+      "expected": "Maria."
+    },
+    {
+      "question": "By when must the certificates be rotated?",
+      "expected": "By Friday."
+    },
+    {
+      "question": "What is the deployment freeze window?",
+      "expected": "December 20 through January 2."
+    }
+  ]
+}

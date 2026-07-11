@@ -6,11 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from app.api.routes import agent, auth, connectors, documents
+from app.api.routes import agent, auth, connectors, documents, evaluation
 from app.core.config import settings
 from app.core.ratelimit import limiter
 from app.db.session import Base, engine
-from app.models import chunk, document, user  # noqa: F401 — register models with Base
+import app.models  # noqa: F401 — register models with Base
 from app.services import search
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(agent.router)
 app.include_router(connectors.router)
+app.include_router(evaluation.router)
 
 
 @app.get("/health")

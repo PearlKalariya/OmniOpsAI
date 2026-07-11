@@ -24,10 +24,6 @@ def get_model() -> SentenceTransformer:
     return _model
 
 
-def embedding_dim() -> int:
-    return get_model().get_sentence_embedding_dimension()
-
-
 def embed_passages(texts: list[str]) -> list[list[float]]:
     model = get_model()
     vectors = model.encode(texts, normalize_embeddings=True, show_progress_bar=False)

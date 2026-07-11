@@ -3,4 +3,5 @@
 # foreign-key resolution (e.g. documents.owner_id -> users.id).
 from app.models.chunk import DocumentChunk  # noqa: F401
 from app.models.document import Document  # noqa: F401
+from app.models.evaluation import EvalResult, EvalRun  # noqa: F401
 from app.models.user import User  # noqa: F401

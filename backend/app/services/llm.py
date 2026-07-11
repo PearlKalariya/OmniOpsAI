@@ -26,6 +26,18 @@ def is_configured() -> bool:
     return bool(settings.llm_api_key)
 
 
+def _complete(system: str, user: str, max_tokens: int):
+    return litellm.completion(
+        model=settings.llm_model,
+        api_key=settings.llm_api_key,
+        max_tokens=max_tokens,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    )
+
+
 def generate_answer(question: str, chunks: list[dict]) -> dict:
     """Build a grounded prompt from retrieved chunks and ask the LLM.
 
@@ -37,15 +49,7 @@ def generate_answer(question: str, chunks: list[dict]) -> dict:
     )
     user_message = f"Context passages:\n\n{context}\n\nQuestion: {question}"
 
-    response = litellm.completion(
-        model=settings.llm_model,
-        api_key=settings.llm_api_key,
-        max_tokens=1024,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_message},
-        ],
-    )
+    response = _complete(SYSTEM_PROMPT, user_message, max_tokens=1024)
     return {
         "answer": response.choices[0].message.content,
         "model": response.model,
@@ -54,15 +58,7 @@ def generate_answer(question: str, chunks: list[dict]) -> dict:
 
 def complete_text(system: str, user: str, max_tokens: int = 1024) -> str:
     """One-shot plain-text completion."""
-    response = litellm.completion(
-        model=settings.llm_model,
-        api_key=settings.llm_api_key,
-        max_tokens=max_tokens,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-    )
+    response = _complete(system, user, max_tokens)
     return (response.choices[0].message.content or "").strip()
 
 
@@ -72,15 +68,7 @@ def complete_json(system: str, user: str, max_tokens: int = 512) -> dict:
     Extracts the first {...} block from the reply (models often wrap JSON
     in prose or code fences). Raises ValueError if no parseable object.
     """
-    response = litellm.completion(
-        model=settings.llm_model,
-        api_key=settings.llm_api_key,
-        max_tokens=max_tokens,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-    )
+    response = _complete(system, user, max_tokens)
     text = response.choices[0].message.content or ""
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if not match:

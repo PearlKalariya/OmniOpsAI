@@ -1,17 +1,18 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from app import models  # noqa: F401 — register models with Base
+from app.api.deps import get_current_user
 from app.api.routes import agent, auth, connectors, documents, evaluation
 from app.core.config import settings
 from app.core.ratelimit import limiter
 from app.db.session import Base, engine
-import app.models  # noqa: F401 — register models with Base
-from app.services import search
+from app.services import llm, search
 
 logger = logging.getLogger(__name__)
 
@@ -55,3 +56,9 @@ app.include_router(evaluation.router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/metrics")
+def metrics(current_user=Depends(get_current_user)):
+    """LLM usage since process start: calls, tokens, cost, latency."""
+    return llm.get_metrics()

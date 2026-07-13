@@ -42,7 +42,7 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 - [ ] Prometheus + Grafana metrics/dashboards
 - [x] Automated eval pipeline (Question → agent → Judge LLM → Metrics; POST /api/eval/run, persisted runs+results)
 - [x] RAGAS-style metrics (faithfulness, answer_relevance, context_precision — judged directly on LiteLLM model)
-- [x] Track latency per question/run (cost + token usage pending — needs LiteLLM usage capture)
+- [x] Track cost, latency, token usage (in-memory meter in llm._complete + GET /api/metrics; cost via litellm.completion_cost — 0 for Groq free tier, populates for priced providers)
 - [x] Track faithfulness, groundedness (groundedness from verifier, faithfulness from judge)
 - [x] Track retrieval precision (context_precision metric) — tool success rate pending
 - [ ] Cost Dashboard (UI) — M4

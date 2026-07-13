@@ -37,7 +37,7 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 
 ## Milestone 3: Evaluation & Monitoring (Weeks 6–8)
 
-- [ ] Langfuse integration for tracing
+- [x] Langfuse integration for tracing (litellm success/failure callback, auto-enabled when LANGFUSE_* keys set; no-op + failure-safe without them. langfuse<3 pinned for litellm callback compat)
 - [ ] OpenTelemetry instrumentation
 - [ ] Prometheus + Grafana metrics/dashboards
 - [x] Automated eval pipeline (Question → agent → Judge LLM → Metrics; POST /api/eval/run, persisted runs+results)

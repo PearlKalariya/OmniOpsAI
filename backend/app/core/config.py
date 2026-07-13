@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     # True processes uploads inline (no worker/broker needed) — dev/test escape hatch.
     ingest_sync: bool = False
+    # Langfuse LLM tracing (optional). Set both keys to enable; no-op otherwise.
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_host: str = "https://cloud.langfuse.com"
 
 
 settings = Settings()

@@ -1,9 +1,22 @@
 """GitHub connector (repos + issues, read-only)."""
 
-from app.connectors.base import get
+import re
+
+from app.connectors.base import ConnectorError, get
 from app.core.config import settings
 
 API = "https://api.github.com"
+
+# GitHub owner/repo charset. owner/repo are interpolated into the URL path,
+# so anything outside this set (/, ?, #, ..) could traverse to other API
+# endpoints using our token — reject before building the URL.
+_SEGMENT = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def _safe_segment(value: str, name: str) -> str:
+    if not _SEGMENT.match(value or ""):
+        raise ConnectorError(f"invalid {name}: must match [A-Za-z0-9._-]")
+    return value
 
 
 def _headers() -> dict:
@@ -33,6 +46,8 @@ def list_repos(limit: int = 10) -> list[dict]:
 
 
 def list_issues(owner: str, repo: str, limit: int = 10) -> list[dict]:
+    owner = _safe_segment(owner, "owner")
+    repo = _safe_segment(repo, "repo")
     data = get(
         f"{API}/repos/{owner}/{repo}/issues",
         headers=_headers(),

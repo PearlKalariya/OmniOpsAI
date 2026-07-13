@@ -6,6 +6,7 @@ config change, not a code change. Default model is Anthropic Claude Opus 4.8.
 """
 
 import json
+import os
 import re
 import threading
 import time
@@ -13,6 +14,15 @@ import time
 import litellm
 
 from app.core.config import settings
+
+# Enable Langfuse tracing when both keys are set. LiteLLM's callback reads
+# credentials from the process env, so mirror them there.
+if settings.langfuse_public_key and settings.langfuse_secret_key:
+    os.environ["LANGFUSE_PUBLIC_KEY"] = settings.langfuse_public_key
+    os.environ["LANGFUSE_SECRET_KEY"] = settings.langfuse_secret_key
+    os.environ["LANGFUSE_HOST"] = settings.langfuse_host
+    litellm.success_callback = ["langfuse"]
+    litellm.failure_callback = ["langfuse"]
 
 SYSTEM_PROMPT = (
     "You are OmniOps AI, an assistant that answers questions about the user's "

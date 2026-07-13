@@ -4,7 +4,7 @@ All routes: authenticated, rate-limited, 503 when the connector's token
 is missing, 502 with a safe message when the provider errors.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from app.api.deps import get_current_user
@@ -38,7 +38,11 @@ def github_repos(request: Request, limit: int = 10, current_user: User = Depends
 @router.get("/github/issues")
 @limiter.limit("30/minute")
 def github_issues(
-    request: Request, owner: str, repo: str, limit: int = 10, current_user: User = Depends(get_current_user)
+    request: Request,
+    owner: str = Query(pattern=r"^[A-Za-z0-9._-]+$"),
+    repo: str = Query(pattern=r"^[A-Za-z0-9._-]+$"),
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
 ):
     _guard(github.is_configured(), "GitHub")
     return _call(github.list_issues, owner=owner, repo=repo, limit=max(1, min(limit, 30)))

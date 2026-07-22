@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "omniops-api", "cwd": "backend", "runtimeExecutable": ".venv/bin/uvicorn", "runtimeArgs": ["app.main:app", "--port", "8000"], "port": 8000, "autoPort": false }
+    { "name": "omniops-api", "cwd": "backend", "runtimeExecutable": ".venv/bin/uvicorn", "runtimeArgs": ["app.main:app", "--port", "8000"], "port": 8000, "autoPort": false },
+    { "name": "omniops-frontend", "cwd": "frontend", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "--port", "3000"], "port": 3000, "autoPort": false }
   ]
 }

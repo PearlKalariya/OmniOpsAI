@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     upload_dir: str = "storage/uploads"
     elasticsearch_url: str = "http://localhost:9200"
     es_chunk_index: str = "document_chunks"
-    cors_origins: list[str] = ["http://localhost:3000"]
+    # Next.js dev server — both spellings, browsers treat them as distinct origins.
+    cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "document_chunks"
     embedding_model_name: str = "BAAI/bge-m3"

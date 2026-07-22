@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OmniOps AI — Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .card { background:#111827; border:1px solid #1f2937; }
+    .node { transition: all .2s; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-200 min-h-screen">
+  <div class="max-w-5xl mx-auto p-6">
+    <header class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-white">OmniOps AI <span class="text-indigo-400">Console</span></h1>
+        <p class="text-sm text-gray-500">Multimodal RAG · multi-agent · evaluation</p>
+      </div>
+      <div id="auth-status" class="text-sm text-gray-400"></div>
+    </header>
+
+    <!-- AUTH -->
+    <section id="auth-panel" class="card rounded-xl p-5 mb-6">
+      <h2 class="font-semibold text-white mb-3">Sign in</h2>
+      <div class="flex flex-wrap gap-3 items-end">
+        <label class="text-xs text-gray-400">Email
+          <input id="email" type="email" value="demo@example.com" class="block mt-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm w-64" />
+        </label>
+        <label class="text-xs text-gray-400">Password
+          <input id="password" type="password" value="secret123" class="block mt-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm w-48" />
+        </label>
+        <button onclick="register()" class="bg-gray-700 hover:bg-gray-600 rounded px-4 py-2 text-sm">Register</button>
+        <button onclick="login()" class="bg-indigo-600 hover:bg-indigo-500 rounded px-4 py-2 text-sm font-medium">Login</button>
+      </div>
+      <p id="auth-msg" class="text-xs mt-2"></p>
+    </section>
+
+    <main id="app" class="hidden space-y-6">
+      <!-- UPLOAD -->
+      <section class="card rounded-xl p-5">
+        <h2 class="font-semibold text-white mb-3">1 · Upload a document</h2>
+        <p class="text-xs text-gray-500 mb-3">PDF, CSV, text, image (OCR+caption), or audio (transcribed). Processed async by the Celery worker.</p>
+        <div class="flex gap-3 items-center">
+          <input id="file" type="file" class="text-sm text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-indigo-600 file:text-white" />
+          <button onclick="upload()" class="bg-indigo-600 hover:bg-indigo-500 rounded px-4 py-2 text-sm">Upload</button>
+        </div>
+        <div id="docs" class="mt-4 space-y-1 text-sm"></div>
+      </section>
+
+      <!-- ASK -->
+      <section class="card rounded-xl p-5">
+        <h2 class="font-semibold text-white mb-3">2 · Ask the agent</h2>
+        <div class="flex gap-3">
+          <input id="question" placeholder="What does the document say about…?" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm" onkeydown="if(event.key==='Enter')ask()" />
+          <select id="report-format" class="bg-gray-900 border border-gray-700 rounded px-2 text-sm">
+            <option value="">Answer only</option>
+            <option value="summary">Summary</option>
+            <option value="ticket">Jira ticket</option>
+            <option value="email">Email</option>
+            <option value="slack">Slack</option>
+          </select>
+          <button onclick="ask()" class="bg-indigo-600 hover:bg-indigo-500 rounded px-5 py-2 text-sm font-medium">Ask</button>
+        </div>
+        <div id="pipeline" class="mt-5 hidden">
+          <div class="flex flex-wrap gap-2 mb-4" id="nodes"></div>
+          <div id="answer" class="bg-gray-900 rounded-lg p-4 text-sm mb-3"></div>
+          <div id="report" class="bg-gray-900 rounded-lg p-4 text-sm mb-3 hidden"></div>
+          <div id="sources" class="space-y-2 text-xs"></div>
+        </div>
+      </section>
+
+      <!-- METRICS -->
+      <section class="card rounded-xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold text-white">3 · LLM metrics</h2>
+          <button onclick="loadMetrics()" class="text-xs text-indigo-400 hover:underline">refresh</button>
+        </div>
+        <div id="metrics" class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm"></div>
+      </section>
+    </main>
+  </div>
+
+<script>
+const API = "";  // same-origin
+let token = localStorage.getItem("omniops_token") || "";
+
+function authHeaders(json=true){
+  const h = { "Authorization": "Bearer " + token };
+  if (json) h["Content-Type"] = "application/json";
+  return h;
+}
+function setMsg(id, text, ok){ const e=document.getElementById(id); e.textContent=text; e.className="text-xs mt-2 "+(ok?"text-green-400":"text-red-400"); }
+
+async function register(){
+  const r = await fetch(API+"/api/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(creds())});
+  setMsg("auth-msg", r.ok?"Registered — now login.":("Register failed: "+(await r.json()).detail), r.ok);
+}
+async function login(){
+  const r = await fetch(API+"/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(creds())});
+  if(!r.ok){ setMsg("auth-msg","Login failed: "+(await r.json()).detail,false); return; }
+  token = (await r.json()).access_token;
+  localStorage.setItem("omniops_token", token);
+  onLoggedIn();
+}
+function creds(){ return { email:document.getElementById("email").value, password:document.getElementById("password").value }; }
+
+function onLoggedIn(){
+  document.getElementById("auth-panel").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("auth-status").innerHTML = '<span class="text-green-400">● connected</span> · <a href="#" onclick="logout()" class="hover:underline">logout</a>';
+  loadDocs(); loadMetrics();
+}
+function logout(){ token=""; localStorage.removeItem("omniops_token"); location.reload(); }
+
+async function upload(){
+  const f = document.getElementById("file").files[0];
+  if(!f) return;
+  const fd = new FormData(); fd.append("file", f);
+  const r = await fetch(API+"/api/documents/upload",{method:"POST",headers:authHeaders(false),body:fd});
+  if(!r.ok){ alert("Upload failed: "+(await r.json()).detail); return; }
+  const doc = await r.json();
+  pollDoc(doc.id);
+  loadDocs();
+}
+async function pollDoc(id){
+  for(let i=0;i<60;i++){
+    const r = await fetch(API+"/api/documents/"+id,{headers:authHeaders()});
+    const d = await r.json();
+    loadDocs();
+    if(["processed","failed","no_text"].includes(d.status)) return;
+    await new Promise(s=>setTimeout(s,1500));
+  }
+}
+async function loadDocs(){
+  const r = await fetch(API+"/api/documents",{headers:authHeaders()});
+  if(!r.ok) return;
+  const docs = await r.json();
+  document.getElementById("docs").innerHTML = docs.map(d=>{
+    const color = d.status==="processed"?"text-green-400":d.status==="failed"?"text-red-400":"text-yellow-400";
+    return `<div class="flex justify-between border-b border-gray-800 py-1">
+      <span>${escapeHtml(d.filename)} <span class="text-gray-600">· ${d.content_type}</span></span>
+      <span class="${color}">${d.status}${d.chunk_count?` · ${d.chunk_count} chunks`:""}</span></div>`;
+  }).join("") || '<p class="text-gray-600">No documents yet.</p>';
+}
+
+async function ask(){
+  const q = document.getElementById("question").value.trim();
+  if(!q) return;
+  const fmt = document.getElementById("report-format").value;
+  const url = fmt ? "/api/agent/report" : "/api/agent/ask";
+  const body = fmt ? {question:q, format:fmt} : {question:q};
+  document.getElementById("pipeline").classList.remove("hidden");
+  document.getElementById("nodes").innerHTML = '<span class="text-gray-500 text-sm">running…</span>';
+  document.getElementById("answer").textContent=""; document.getElementById("sources").innerHTML="";
+  document.getElementById("report").classList.add("hidden");
+  const r = await fetch(API+url,{method:"POST",headers:authHeaders(),body:JSON.stringify(body)});
+  const d = await r.json();
+  if(!r.ok){ document.getElementById("nodes").innerHTML=`<span class="text-red-400 text-sm">${escapeHtml(d.detail)}</span>`; return; }
+  renderPipeline(d);
+  loadMetrics();
+}
+function renderPipeline(d){
+  // trace nodes
+  document.getElementById("nodes").innerHTML = (d.trace||[]).map(t=>{
+    return `<div class="node bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs">
+      <div class="font-medium text-indigo-300 capitalize">${t.node}</div>
+      <div class="text-gray-500">${t.ms}ms${t.mode?` · ${t.mode}`:""}${t.reranked?" · reranked":""}</div></div>`;
+  }).join('<div class="self-center text-gray-600">→</div>');
+  // answer + verification
+  const v = d.verification||{};
+  const badge = v.grounded===true?'<span class="text-green-400">✓ grounded</span>':v.grounded===false?'<span class="text-red-400">✗ not grounded</span>':'<span class="text-gray-500">unverified</span>';
+  const cites = (v.citations_used&&v.citations_used.length)?` · cites [${v.citations_used.join("],[")}]`:"";
+  document.getElementById("answer").innerHTML = `<div class="text-gray-100 mb-2">${escapeHtml(d.answer||"")}</div>
+    <div class="text-xs">${badge}${cites} · <span class="text-gray-500">${escapeHtml((d.model||""))}</span></div>`;
+  // report
+  if(d.report){ const el=document.getElementById("report"); el.classList.remove("hidden");
+    el.innerHTML = `<div class="text-xs text-indigo-400 mb-1">report · ${d.report_format}${d.delivered_to?` · sent to #${d.delivered_to}`:""}</div><pre class="text-gray-200">${escapeHtml(d.report)}</pre>`; }
+  // sources
+  document.getElementById("sources").innerHTML = (d.sources||[]).map((s,i)=>{
+    const score = s.rerank_score!=null?`rerank ${s.rerank_score.toFixed(3)}`:`score ${(s.score||0).toFixed(2)}`;
+    return `<div class="bg-gray-900 border border-gray-800 rounded p-2">
+      <div class="text-gray-500 mb-1">[${i+1}] ${score}${s.sources?` · ${s.sources.join("+")}`:""}</div>
+      <div class="text-gray-300">${escapeHtml(s.content.slice(0,240))}${s.content.length>240?"…":""}</div></div>`;
+  }).join("");
+}
+
+async function loadMetrics(){
+  const r = await fetch(API+"/api/metrics",{headers:authHeaders()});
+  if(!r.ok) return;
+  const m = await r.json();
+  const tiles = [
+    ["LLM calls", m.calls],
+    ["Tokens", (m.prompt_tokens+m.completion_tokens).toLocaleString()],
+    ["Cost", "$"+(m.cost_usd||0).toFixed(4)],
+    ["Avg latency", m.avg_latency_ms+"ms"],
+  ];
+  document.getElementById("metrics").innerHTML = tiles.map(([k,v])=>
+    `<div class="bg-gray-900 rounded-lg p-3"><div class="text-gray-500 text-xs">${k}</div><div class="text-lg font-semibold text-white">${v}</div></div>`).join("");
+}
+
+function escapeHtml(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+// auto-login if token present
+if(token){ fetch(API+"/api/metrics",{headers:authHeaders()}).then(r=>{ if(r.ok) onLoggedIn(); else { token=""; localStorage.removeItem("omniops_token"); } }); }
+</script>
+</body>
+</html>

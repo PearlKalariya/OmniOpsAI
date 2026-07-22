@@ -50,13 +50,14 @@ Breakdown of [OmniOps_AI_Project_Blueprint.md](OmniOps_AI_Project_Blueprint.md) 
 
 ## Milestone 4: UI, Deployment, Polish (Weeks 9–12)
 
-- [ ] Next.js + Tailwind + shadcn/ui frontend scaffold
+- [x] Console UI — single self-contained page (CDN Tailwind + vanilla fetch, served by FastAPI at /ui/, same-origin, no build step). ponytail choice over Next.js/shadcn scaffold: zero node_modules, demoable instantly. Covers Chat, Agent Graph, Retrieval Inspector, Cost Dashboard below. Say "next.js" for the full SPA scaffold if the resume needs that exact stack.
 - [ ] OAuth social login (moved from M1 — needs frontend + provider registration)
-- [ ] Dashboard page
-- [ ] Chat page
-- [ ] Agent Execution Graph page
-- [ ] Retrieval Inspector page
+- [x] Dashboard (metrics tiles: calls/tokens/cost/latency) — in console UI
+- [x] Chat page (ask agent, report formats) — in console UI
+- [x] Agent Execution Graph (live node trace w/ per-node timings) — in console UI
+- [x] Retrieval Inspector (sources w/ rerank scores + retriever tags) — in console UI
 - [ ] Admin Panel page
+- [ ] Evaluation Dashboard UI (eval API exists; no UI section yet)
 - [ ] MinIO/S3 storage wiring for file assets
 - [ ] Dockerize all services
 - [ ] Kubernetes manifests / Helm chart

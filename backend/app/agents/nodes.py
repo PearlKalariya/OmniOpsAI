@@ -52,6 +52,14 @@ def plan_node(state: AgentState) -> dict:
     return {"plan": plan, "trace": [{"node": "planner", "ms": ms, "plan": plan}]}
 
 
+def _search(mode: str, owner_id: str, question: str, size: int) -> list[dict]:
+    if mode == "bm25":
+        return search.search_chunks(owner_id=owner_id, query=question, size=size)
+    if mode == "vector":
+        return vectorstore.search_chunks(owner_id=owner_id, query_vector=embed_query(question), size=size)
+    return hybrid.hybrid_search(owner_id=owner_id, query=question, size=size)
+
+
 def retrieve_node(state: AgentState) -> dict:
     start = time.monotonic()
     plan = state.get("plan", DEFAULT_PLAN)
@@ -60,12 +68,17 @@ def retrieve_node(state: AgentState) -> dict:
     # Overfetch so the cross-encoder has candidates to reorder.
     fetch = min(limit * 3, MAX_LIMIT * 3)
 
-    if mode == "bm25":
-        hits = search.search_chunks(owner_id=owner_id, query=question, size=fetch)
-    elif mode == "vector":
-        hits = vectorstore.search_chunks(owner_id=owner_id, query_vector=embed_query(question), size=fetch)
-    else:
-        hits = hybrid.hybrid_search(owner_id=owner_id, query=question, size=fetch)
+    hits = _search(mode, owner_id, question, fetch)
+
+    # An empty single-mode result is usually a retriever miss, not an empty
+    # corpus: bm25 finds nothing when the question shares no keywords with
+    # the text ("what is my name" vs a résumé). Fall back to hybrid before
+    # telling the user there are no documents.
+    fallback_from = None
+    if not hits and mode != "hybrid":
+        hits = _search("hybrid", owner_id, question, fetch)
+        if hits:
+            fallback_from, mode = mode, "hybrid"
 
     # Rerank even when nothing gets truncated — the cross-encoder fixes
     # citation order ([1] should be the most relevant passage).
@@ -80,10 +93,10 @@ def retrieve_node(state: AgentState) -> dict:
     else:
         hits = hits[:limit]
     ms = int((time.monotonic() - start) * 1000)
-    return {
-        "hits": hits,
-        "trace": [{"node": "retrieval", "ms": ms, "mode": mode, "hits": len(hits), "reranked": reranked}],
-    }
+    entry = {"node": "retrieval", "ms": ms, "mode": mode, "hits": len(hits), "reranked": reranked}
+    if fallback_from:
+        entry["fallback_from"] = fallback_from
+    return {"hits": hits, "trace": [entry]}
 
 
 def answer_node(state: AgentState) -> dict:

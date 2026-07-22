@@ -1,8 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
 
+from pathlib import Path
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -56,6 +59,11 @@ app.include_router(evaluation.router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# Single-file console UI (same-origin, no build step). Served at /ui/.
+_static = Path(__file__).resolve().parent.parent / "static"
+app.mount("/ui", StaticFiles(directory=_static, html=True), name="ui")
 
 
 @app.get("/api/metrics")

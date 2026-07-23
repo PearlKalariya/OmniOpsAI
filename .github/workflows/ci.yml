@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # Static checks only — pyflakes, bandit, pip-audit and py_compile all
+      # parse source without importing it, so the heavy ML deps (torch,
+      # transformers, …) never need installing. Keeps CI under a minute.
+      - name: Install lint/security tools
+        run: pip install pyflakes bandit pip-audit
+
+      - name: Compile
+        working-directory: backend
+        run: python -m compileall -q app
+
+      - name: Lint (pyflakes)
+        working-directory: backend
+        # Model registrations are imported for their side effect (# noqa),
+        # which pyflakes reports as unused — filter those, fail on anything else.
+        run: |
+          out=$(python -m pyflakes app | grep -v "imported but unused" || true)
+          if [ -n "$out" ]; then echo "$out"; exit 1; fi
+
+      - name: Security (bandit)
+        working-directory: backend
+        run: bandit -r app -q
+
+      - name: Dependency CVEs (pip-audit)
+        run: pip-audit -r backend/requirements.txt
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - name: Build (also type-checks)
+        run: npm run build
+      - name: Dependency audit
+        run: npm audit --audit-level=high

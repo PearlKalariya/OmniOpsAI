@@ -20,17 +20,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   // Probe a cheap authed endpoint so a stale/expired token doesn't leave the
-  // UI thinking it's logged in.
+  // UI thinking it's logged in. Single async path so state only settles once.
   useEffect(() => {
-    if (!getToken()) {
-      setReady(true);
-      return;
-    }
-    api
-      .metrics()
-      .then(() => setAuthed(true))
-      .catch(() => clearToken())
-      .finally(() => setReady(true));
+    let cancelled = false;
+    (async () => {
+      if (getToken()) {
+        try {
+          await api.metrics();
+          if (!cancelled) setAuthed(true);
+        } catch {
+          clearToken();
+        }
+      }
+      if (!cancelled) setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

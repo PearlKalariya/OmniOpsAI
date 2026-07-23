@@ -24,7 +24,8 @@ Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if settings.jwt_secret_key == "change-me-in-production" or len(settings.jwt_secret_key) < 32:  # nosec B105 — detects the weak default, is not a credential
+    # The literal below is the weak default we warn against, not a real secret.
+    if settings.jwt_secret_key == "change-me-in-production" or len(settings.jwt_secret_key) < 32:  # nosec B105
         logger.warning(
             "JWT_SECRET_KEY is weak (default or under 32 bytes) — tokens are forgeable. "
             'Generate one: python -c "import secrets; print(secrets.token_hex(32))"'

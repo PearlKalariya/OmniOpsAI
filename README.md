@@ -1,5 +1,7 @@
 # OmniOps AI
 
+[![CI](https://github.com/PearlKalariya/OmniOpsAI/actions/workflows/ci.yml/badge.svg)](https://github.com/PearlKalariya/OmniOpsAI/actions/workflows/ci.yml)
+
 **Autonomous enterprise operations platform** — ingests documents, images, and audio into a hybrid-retrieval knowledge base, answers questions through a multi-agent graph, and scores its own answers with an LLM judge.
 
 Built to be *verifiable*: every answer carries citations, a groundedness verdict, and a per-node execution trace. Retrieval quality and hallucination rate are measured by an automated evaluation pipeline rather than asserted.

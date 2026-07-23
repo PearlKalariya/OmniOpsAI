@@ -62,6 +62,72 @@ services:
       - "9200:9200"
     volumes:
       - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  # ---- application tier ----
+  # api and worker share one image and one uploads volume: the API writes the
+  # uploaded file to disk, the worker reads it back during ingestion.
+
+  api:
+    build: ./backend
+    container_name: omniops-api
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment: &app_env
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/omniops
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
+      UPLOAD_DIR: /app/storage/uploads
+      HF_HOME: /models
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/app/storage/uploads
+      - hf_models:/models
+    depends_on:
+      postgres: { condition: service_healthy }
+      elasticsearch: { condition: service_healthy }
+      qdrant: { condition: service_started }
+      redis: { condition: service_started }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8000/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build: ./backend
+    container_name: omniops-worker
+    command: celery -A app.core.celery_app worker --loglevel=info --pool=solo
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment: *app_env
+    volumes:
+      - uploads:/app/storage/uploads
+      - hf_models:/models
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Baked in at build time and used by the browser, so it must be the
+        # host-published API port, not the compose service name.
+        NEXT_PUBLIC_API_BASE: http://localhost:8000
+    container_name: omniops-web
+    ports:
+      - "3000:3000"
+    depends_on:
+      api: { condition: service_started }
 
 volumes:
   postgres_data:
@@ -69,3 +135,5 @@ volumes:
   redis_data:
   minio_data:
   es_data:
+  uploads:
+  hf_models:

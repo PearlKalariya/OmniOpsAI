@@ -60,27 +60,34 @@ Every item below was verified end-to-end against the running stack.
 
 ## Running it
 
-```bash
-# 1. Infrastructure (Postgres, Elasticsearch, Qdrant, Redis, MinIO)
-docker compose up -d
+Everything — infrastructure, API, ingestion worker, and console — comes up with one command:
 
-# 2. Backend
+```bash
+cp backend/.env.example backend/.env    # set LLM_API_KEY (Groq's free tier works)
+docker compose up --build
+```
+
+→ console at `http://localhost:3000`, API at `http://localhost:8000` (`/docs` for OpenAPI).
+
+<details>
+<summary>Running the app tier outside Docker (for development)</summary>
+
+```bash
+docker compose up -d postgres elasticsearch qdrant redis minio   # infra only
+
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # set LLM_API_KEY (Groq's free tier works)
 uvicorn app.main:app --port 8000
+celery -A app.core.celery_app worker --pool=solo    # separate shell
 
-# 3. Ingestion worker (separate shell)
-celery -A app.core.celery_app worker --pool=solo
-
-# 4. Console (separate shell)
-cd frontend && npm install && npm run dev     # → http://localhost:3000
+cd frontend && npm install && npm run dev           # separate shell
 ```
+</details>
 
 A zero-dependency fallback console is served at `http://localhost:8000/ui/` if you'd rather skip the Node toolchain. API docs at `/docs`.
 
-**First run downloads models** (~4 GB total: bge-m3, reranker, TrOCR, BLIP, Whisper) and the first agent call after a restart takes ~20 s while the reranker loads. Subsequent calls are ~1 s.
+**First run downloads models** (~4 GB total: bge-m3, reranker, TrOCR, BLIP, Whisper) on first use rather than baking them into the image. They land in a named volume shared by the API and worker, so the download happens once and survives rebuilds. The first agent call after a restart takes ~20 s while the reranker loads; subsequent calls are ~1 s.
 
 **`INGEST_SYNC=true`** processes uploads inline if you don't want to run a worker.
 
